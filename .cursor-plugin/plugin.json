@@ -1,0 +1,19 @@
+{
+  "name": "clean",
+  "displayName": "Clean",
+  "version": "1.0.0",
+  "description": "Find, research and organize B2B leads with Clean: run lead research on your ideal customer profile, read the qualified leads, search your LinkedIn connections and draft sequences without sending.",
+  "author": {
+    "name": "Clean",
+    "email": "hello@tryclean.ai"
+  },
+  "publisher": "Clean",
+  "homepage": "https://tryclean.ai",
+  "repository": "https://github.com/cleanmcp/clean-grok-plugin",
+  "license": "MIT",
+  "logo": "assets/logo.png",
+  "category": "integrations",
+  "keywords": ["clean", "leads", "prospecting", "sales", "b2b", "icp", "outbound", "crm", "mcp"],
+  "tags": ["clean", "sales", "prospecting", "mcp"],
+  "mcpServers": "./mcp.json"
+}
