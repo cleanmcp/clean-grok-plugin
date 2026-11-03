@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "clean",
+  "version": "1.0.0",
+  "description": "Find, research and organize B2B leads with Clean: run lead research on your ideal customer profile, read the qualified leads, search your LinkedIn connections and draft sequences without sending.",
+  "author": {
+    "name": "Clean",
+    "email": "hello@tryclean.ai"
+  },
+  "homepage": "https://tryclean.ai",
+  "repository": "https://github.com/cleanmcp/clean-grok-plugin",
+  "license": "MIT",
+  "keywords": ["clean", "leads", "prospecting", "sales", "b2b", "icp", "outbound", "crm", "mcp"]
+}

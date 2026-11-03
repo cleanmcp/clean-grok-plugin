@@ -5,9 +5,15 @@ This plugin connects Grok Bot and Cursor to Clean's hosted MCP server, so your a
 
 The plugin contains no server code. It only points at `https://app.tryclean.ai/v1/mcp`, which Clean hosts.
 
+Layout: `plugin.json` at the repo root is the portable [Agent Plugins](https://agent-plugins.org) manifest, `.cursor-plugin/plugin.json` is the Cursor Plugin manifest (adds the logo and marketplace metadata), and `mcp.json` holds the MCP server definition. The MCP server name is `clean`.
+
 ## Install
 
-**Grok Bot or Cursor:** open the plugin marketplace, search for **Clean**, click **Install**, then sign in when asked. If Cursor cannot finish the Clean sign-in, use the API key setup below.
+**Grok Bot:** open **Plugins** (marketplace), search for **Clean**, click **Install**, then sign in with Clean when the browser opens.
+
+**Cursor:** open **Customize → Plugins**, search for **Clean** in the Cursor Marketplace, click **Install** and pick user or project scope, then sign in with Clean when asked. If Cursor cannot finish the Clean sign-in, use the API key setup below.
+
+**Install from this repo (before the listing is live):** copy this folder to `~/.cursor/plugins/local/clean`, run **Developer: Reload Window**, and confirm the `clean` MCP server shows up under Customize.
 
 **Any other MCP client:** add a remote (Streamable HTTP) MCP server:
 
