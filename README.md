@@ -13,12 +13,12 @@ Layout: `plugin.json` at the repo root is the portable [Agent Plugins](https://a
 | --- | --- | --- | --- | --- |
 | Grok Bot (x.ai) | Submitted | x.ai plugin form, HTTP 200 `{"success":true}` | 2026-11-04 | Wait for x.ai review |
 | Cursor Marketplace | Submitted | Email thread with Sam at Cursor; deeplink below works today; https://cursor.com/marketplace/publish needs a Cursor sign-in | 2026-11-04 | Reply to Cursor thread / apply as publisher while signed in |
-| MCP Registry (modelcontextprotocol.io) | Ready, publishes on merge | `server.json` + `.github/workflows/publish-mcp-registry.yml`; check `https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.cleanmcp/clean` | 2026-11-04 | Merge to main (Actions OIDC must be enabled) |
+| MCP Registry (modelcontextprotocol.io) | Live | `io.github.cleanmcp/clean` v1.0.0, active since 2026-11-04T07:17Z: https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.cleanmcp/clean (also feeds the VS Code/GitHub MCP gallery and PulseMCP) | 2026-11-04 | - |
 | Claude connector directory | Blocked on owner | https://claude.ai/directory/manage → Submit new → MCP connector | 2026-11-04 | Paid Claude plan login as hello@, reviewer test account |
-| Claude Code plugin | Live on merge | `/plugin install clean --marketplace cleanmcp/clean` | 2026-11-04 | Merge to main |
+| Claude Code plugin | Live | `/plugin install clean --marketplace cleanmcp/clean` | 2026-11-04 | - |
 | Anthropic plugin directory | Blocked on owner | https://claude.com/partners/mcp → Submit a plugin | 2026-11-04 | Same login as connector directory |
 | ChatGPT plugin directory | Package ready | `openai/` folder, ZIP via **Build the ChatGPT ZIP** below; upload at https://platform.openai.com/plugins | 2026-11-04 | OpenAI org login, developer identity verification, domain challenge at `app.tryclean.ai/.well-known/openai-apps-challenge`, reviewer test account |
-| Codex marketplace | Live on merge | `codex plugin marketplace add cleanmcp/clean` | 2026-11-04 | Merge to main |
+| Codex marketplace | Live | `codex plugin marketplace add cleanmcp/clean` | 2026-11-04 | - |
 | awesome-remote-mcp-servers | Row ready | https://github.com/punkpeye/awesome-remote-mcp-servers (table row below) | 2026-11-04 | Owner opens the PR while signed in to GitHub (fork + one-row edit) |
 | mcpservers.org | Submitted (free plan) | https://mcpservers.org/submit, confirmation "Submission Successful", review ≤2 weeks | 2026-11-04 | Approval email arrives at hello@ |
 | PulseMCP | Paused by PulseMCP | https://www.pulsemcp.com/submit says submissions paused; auto-imports from the MCP Registry | 2026-11-04 | - |
