@@ -1,0 +1,17 @@
+{
+  "name": "clean",
+  "description": "Clean finds your next customers: ICP, researched leads, replies and sequences, from any agent.",
+  "owner": {
+    "name": "Clean",
+    "email": "hello@tryclean.ai"
+  },
+  "plugins": [
+    {
+      "name": "clean",
+      "source": "./",
+      "description": "Find, research and organize B2B leads with Clean through its hosted MCP server.",
+      "category": "productivity",
+      "homepage": "https://tryclean.ai"
+    }
+  ]
+}

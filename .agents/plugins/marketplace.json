@@ -1,0 +1,20 @@
+{
+  "name": "clean",
+  "interface": {
+    "displayName": "Clean"
+  },
+  "plugins": [
+    {
+      "name": "clean",
+      "source": {
+        "source": "local",
+        "path": "./openai"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

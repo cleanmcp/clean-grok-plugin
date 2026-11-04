@@ -1,0 +1,18 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.cleanmcp/clean",
+  "title": "Clean",
+  "description": "Clean finds your next customers: ICP, researched leads, replies and sequences, from any agent.",
+  "version": "1.0.0",
+  "websiteUrl": "https://tryclean.ai",
+  "repository": {
+    "url": "https://github.com/cleanmcp/clean-grok-plugin",
+    "source": "github"
+  },
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://app.tryclean.ai/v1/mcp"
+    }
+  ]
+}
