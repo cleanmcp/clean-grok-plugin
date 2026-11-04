@@ -12,7 +12,7 @@ Layout: `plugin.json` at the repo root is the portable [Agent Plugins](https://a
 | Marketplace | Status | Listing / proof | Date | Needs owner |
 | --- | --- | --- | --- | --- |
 | Grok Bot (x.ai) | Submitted | x.ai plugin form, HTTP 200 `{"success":true}` | 2026-11-04 | Wait for x.ai review |
-| Cursor Marketplace | Submitted | Email thread with Sam at Cursor; deeplink below works today | 2026-11-04 | Reply to Cursor thread |
+| Cursor Marketplace | Submitted | Email thread with Sam at Cursor; deeplink below works today; https://cursor.com/marketplace/publish needs a Cursor sign-in | 2026-11-04 | Reply to Cursor thread / apply as publisher while signed in |
 | MCP Registry (modelcontextprotocol.io) | Ready, publishes on merge | `server.json` + `.github/workflows/publish-mcp-registry.yml`; check `https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.cleanmcp/clean` | 2026-11-04 | Merge to main (Actions OIDC must be enabled) |
 | Claude connector directory | Blocked on owner | https://claude.ai/directory/manage → Submit new → MCP connector | 2026-11-04 | Paid Claude plan login as hello@, reviewer test account |
 | Claude Code plugin | Live on merge | `/plugin install clean --marketplace cleanmcp/clean-grok-plugin` | 2026-11-04 | Merge to main |
@@ -20,8 +20,8 @@ Layout: `plugin.json` at the repo root is the portable [Agent Plugins](https://a
 | ChatGPT plugin directory | Package ready | `openai/` folder, ZIP via `make-openai-zip` below; upload at https://platform.openai.com/plugins | 2026-11-04 | OpenAI org login, developer identity verification, domain challenge at `app.tryclean.ai/.well-known/openai-apps-challenge`, reviewer test account |
 | Codex marketplace | Live on merge | `codex plugin marketplace add cleanmcp/clean-grok-plugin` | 2026-11-04 | Merge to main |
 | awesome-remote-mcp-servers | Row ready | https://github.com/punkpeye/awesome-remote-mcp-servers (table row below) | 2026-11-04 | GitHub fork + PR from an account with a token |
-| mcpservers.org | see commit log | https://mcpservers.org/submit (free) | 2026-11-04 | - |
-| PulseMCP | see commit log | https://www.pulsemcp.com/submit | 2026-11-04 | - |
+| mcpservers.org | Submitted (free plan) | https://mcpservers.org/submit, confirmation "Submission Successful", review ≤2 weeks | 2026-11-04 | Approval email arrives at hello@ |
+| PulseMCP | Paused by PulseMCP | https://www.pulsemcp.com/submit says submissions paused; auto-imports from the MCP Registry | 2026-11-04 | - |
 | mcp.so | Blocked on owner | https://mcp.so/submit (free tier; $39 optional) | 2026-11-04 | GitHub sign-in |
 | Glama | Blocked on owner | https://glama.ai/mcp/servers/add | 2026-11-04 | Glama sign-in |
 | Smithery | Not possible | Self-serve submissions shut down 2026-10-31; curated by Arcade | 2026-11-04 | - |
