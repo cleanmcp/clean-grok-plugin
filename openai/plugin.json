@@ -1,0 +1,64 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "clean",
+  "version": "1.0.0",
+  "description": "Find, research and organize B2B leads with Clean: run lead research on your ideal customer profile, read the qualified leads, search your LinkedIn connections and draft sequences without sending.",
+  "author": {
+    "name": "Clean",
+    "email": "hello@tryclean.ai",
+    "url": "https://tryclean.ai"
+  },
+  "homepage": "https://tryclean.ai",
+  "repository": "https://github.com/cleanmcp/clean-grok-plugin",
+  "license": "MIT",
+  "keywords": ["clean", "leads", "prospecting", "sales", "b2b", "icp", "outbound", "crm", "mcp"],
+  "extensions": {
+    "com.openai": {
+      "interface": {
+        "displayName": "Clean",
+        "shortDescription": "Find and research your next B2B customers",
+        "longDescription": "Clean finds your next customers: define your ideal customer profile, run lead research, read the qualified leads, search your LinkedIn connections, read replies and draft sequences. Clean only accesses the workspace you sign in to, and drafting a sequence never sends a message.",
+        "developerName": "Clean",
+        "category": "Productivity",
+        "capabilities": ["Run lead research", "Read qualified leads", "Search LinkedIn connections", "Read replies", "Draft sequences"],
+        "websiteURL": "https://tryclean.ai",
+        "supportURL": "https://www.tryclean.ai/security",
+        "privacyPolicyURL": "https://www.tryclean.ai/privacy",
+        "termsOfServiceURL": "https://www.tryclean.ai/terms",
+        "defaultPrompt": [
+          "Use Clean to find 20 new leads that match my ICP.",
+          "Use Clean to show my qualified leads from the last run.",
+          "Use Clean to draft a 3-step sequence for my new leads."
+        ],
+        "brandColor": "#111111",
+        "composerIcon": "./assets/icon.png",
+        "logo": "./assets/logo.png",
+        "screenshots": ["./assets/screenshot.png"]
+      },
+      "onboardingSkill": "./skills/get-started/SKILL.md",
+      "review": {
+        "test_cases": {
+          "positive": [
+            {"description": "List ICPs", "prompt": "Use Clean to list my ideal customer profiles.", "tools_triggered": "list_icps", "expected_behavior": "Return the ICPs saved in the connected Clean workspace."},
+            {"description": "Run lead research", "prompt": "Use Clean to find new leads for my first ICP.", "tools_triggered": "list_icps, research, get_run", "expected_behavior": "Start a research run and report its progress."},
+            {"description": "Read research leads", "prompt": "Use Clean to show the leads from my latest run.", "tools_triggered": "get_leads", "expected_behavior": "Return the qualified leads with name, company and reason."},
+            {"description": "Search connections", "prompt": "Use Clean to find my LinkedIn connections who work at fintech companies.", "tools_triggered": "connections", "expected_behavior": "Return matching first-degree connections from the connected account."},
+            {"description": "Draft a sequence", "prompt": "Use Clean to draft a 3-step outreach sequence for my saved leads.", "tools_triggered": "leads_read, sequences_write", "expected_behavior": "Create a draft sequence in the workspace without sending any message."}
+          ],
+          "negative": [
+            {"description": "Sending without consent", "prompt": "Use Clean to send this message to all my leads right now."},
+            {"description": "Data outside the workspace", "prompt": "Use Clean to show leads from another company's workspace."},
+            {"description": "Unsupported action", "prompt": "Use Clean to charge my customer's credit card."}
+          ]
+        },
+        "demo_recording_url": "https://tryclean.ai",
+        "commerce": false,
+        "commerce_description": "Clean does not sell products or process payments inside the plugin."
+      },
+      "publication": {
+        "countries": ["US", "CA", "GB", "DE", "FR", "NL", "IE", "AU"],
+        "release_notes": "Initial release: lead research, qualified leads, LinkedIn connections, replies and draft sequences through Clean's hosted MCP server."
+      }
+    }
+  }
+}
