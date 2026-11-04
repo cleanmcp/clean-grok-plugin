@@ -1,7 +1,7 @@
 # Clean
 
 [Clean](https://tryclean.ai) finds and researches B2B leads that match your ideal customer profile.
-This repo holds Clean's listing manifests for every agent marketplace (Grok Bot, Cursor, Claude, ChatGPT/Codex, the MCP Registry and more), so your agent can run that research and work with the results.
+This repo holds Clean's listing manifests for every agent marketplace (see the table below), so any agent can run that research and work with the results.
 
 The plugin contains no server code. It only points at `https://app.tryclean.ai/v1/mcp`, which Clean hosts.
 
@@ -15,11 +15,11 @@ Layout: `plugin.json` at the repo root is the portable [Agent Plugins](https://a
 | Cursor Marketplace | Submitted | Email thread with Sam at Cursor; deeplink below works today; https://cursor.com/marketplace/publish needs a Cursor sign-in | 2026-11-04 | Reply to Cursor thread / apply as publisher while signed in |
 | MCP Registry (modelcontextprotocol.io) | Ready, publishes on merge | `server.json` + `.github/workflows/publish-mcp-registry.yml`; check `https://registry.modelcontextprotocol.io/v0.1/servers?search=io.github.cleanmcp/clean` | 2026-11-04 | Merge to main (Actions OIDC must be enabled) |
 | Claude connector directory | Blocked on owner | https://claude.ai/directory/manage → Submit new → MCP connector | 2026-11-04 | Paid Claude plan login as hello@, reviewer test account |
-| Claude Code plugin | Live on merge | `/plugin install clean --marketplace cleanmcp/clean-grok-plugin` | 2026-11-04 | Merge to main |
+| Claude Code plugin | Live on merge | `/plugin install clean --marketplace cleanmcp/clean` | 2026-11-04 | Merge to main |
 | Anthropic plugin directory | Blocked on owner | https://claude.com/partners/mcp → Submit a plugin | 2026-11-04 | Same login as connector directory |
-| ChatGPT plugin directory | Package ready | `openai/` folder, ZIP via `make-openai-zip` below; upload at https://platform.openai.com/plugins | 2026-11-04 | OpenAI org login, developer identity verification, domain challenge at `app.tryclean.ai/.well-known/openai-apps-challenge`, reviewer test account |
-| Codex marketplace | Live on merge | `codex plugin marketplace add cleanmcp/clean-grok-plugin` | 2026-11-04 | Merge to main |
-| awesome-remote-mcp-servers | Row ready | https://github.com/punkpeye/awesome-remote-mcp-servers (table row below) | 2026-11-04 | GitHub fork + PR from an account with a token |
+| ChatGPT plugin directory | Package ready | `openai/` folder, ZIP via **Build the ChatGPT ZIP** below; upload at https://platform.openai.com/plugins | 2026-11-04 | OpenAI org login, developer identity verification, domain challenge at `app.tryclean.ai/.well-known/openai-apps-challenge`, reviewer test account |
+| Codex marketplace | Live on merge | `codex plugin marketplace add cleanmcp/clean` | 2026-11-04 | Merge to main |
+| awesome-remote-mcp-servers | Row ready | https://github.com/punkpeye/awesome-remote-mcp-servers (table row below) | 2026-11-04 | Owner opens the PR while signed in to GitHub (fork + one-row edit) |
 | mcpservers.org | Submitted (free plan) | https://mcpservers.org/submit, confirmation "Submission Successful", review ≤2 weeks | 2026-11-04 | Approval email arrives at hello@ |
 | PulseMCP | Paused by PulseMCP | https://www.pulsemcp.com/submit says submissions paused; auto-imports from the MCP Registry | 2026-11-04 | - |
 | mcp.so | Blocked on owner | https://mcp.so/submit (free tier; $39 optional) | 2026-11-04 | GitHub sign-in |
@@ -41,11 +41,11 @@ cd openai && zip -r ../clean-openai-plugin.zip . -x '.DS_Store'
 
 **Cursor one-click:** [Add Clean to Cursor](cursor://anysphere.cursor-deeplink/mcp/install?name=clean&config=eyJ1cmwiOiJodHRwczovL2FwcC50cnljbGVhbi5haS92MS9tY3AifQ==) (`cursor://anysphere.cursor-deeplink/mcp/install?name=clean&config=<base64 of {"url":"https://app.tryclean.ai/v1/mcp"}>`).
 
-**Claude Code:** `/plugin install clean --marketplace cleanmcp/clean-grok-plugin`, then sign in with Clean when the browser opens.
+**Claude Code:** `/plugin install clean --marketplace cleanmcp/clean`, then sign in with Clean when the browser opens.
 
 **Claude.ai / Claude Desktop:** Settings → Connectors → Add custom connector → URL `https://app.tryclean.ai/v1/mcp`.
 
-**ChatGPT / Codex:** `codex plugin marketplace add cleanmcp/clean-grok-plugin`, or in ChatGPT Settings → Connectors → Create → URL `https://app.tryclean.ai/v1/mcp`. Agents SDK: `HostedMCPTool(tool_config={"type": "mcp", "server_label": "clean", "server_url": "https://app.tryclean.ai/v1/mcp", "require_approval": "never"})`.
+**ChatGPT / Codex:** `codex plugin marketplace add cleanmcp/clean`, or in ChatGPT Settings → Connectors → Create → URL `https://app.tryclean.ai/v1/mcp`. Agents SDK: `HostedMCPTool(tool_config={"type": "mcp", "server_label": "clean", "server_url": "https://app.tryclean.ai/v1/mcp", "require_approval": "never"})`.
 
 **VS Code / Copilot:** `code --add-mcp '{"name":"clean","type":"http","url":"https://app.tryclean.ai/v1/mcp"}'`.
 

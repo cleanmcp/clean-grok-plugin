@@ -8,7 +8,7 @@
     "email": "hello@tryclean.ai"
   },
   "homepage": "https://tryclean.ai",
-  "repository": "https://github.com/cleanmcp/clean-grok-plugin",
+  "repository": "https://github.com/cleanmcp/clean",
   "license": "MIT",
   "keywords": ["clean", "leads", "prospecting", "sales", "b2b", "icp", "outbound", "crm", "mcp"]
 }
