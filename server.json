@@ -3,10 +3,10 @@
   "name": "io.github.cleanmcp/clean",
   "title": "Clean",
   "description": "Clean finds your next customers: ICP, researched leads, replies and sequences, from any agent.",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "websiteUrl": "https://tryclean.ai",
   "repository": {
-    "url": "https://github.com/cleanmcp/clean",
+    "url": "https://github.com/cleanmcp/clean-grok-plugin",
     "source": "github"
   },
   "remotes": [
