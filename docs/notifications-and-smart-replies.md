@@ -202,7 +202,7 @@ Response (HTTP 202):
 
 How to compute `textSha256`: hash the `body` string exactly as `smart_reply_draft` returned it, encoded as UTF-8, with no trimming or edits. For example in Python `hashlib.sha256(body.encode("utf-8")).hexdigest()`. It must equal `bodySha256`; if the person edited the text, the hashes differ and the send is refused. To send different words, draft again.
 
-A send that LinkedIn settles as failed (not one that may have reached LinkedIn) moves the draft to state `send_failed`, with an audit row and a `smart_reply_draft` event (`outcome: "send_failed"`). That frees the lead message: a member may draft again and approve the new draft. Draft states are `ready`, `superseded`, `approved` and `send_failed`.
+A send that LinkedIn settles as failed moves the draft to state `send_failed`, with an audit row and a `smart_reply_draft` event (`outcome: "send_failed"`). That frees the lead message: a member may draft again and approve the new draft. A send still queued or sending, one settled as indeterminate (it may have reached LinkedIn) or one that cannot be found does not free it. A `send_failed` draft cannot be approved again (`SMART_REPLY_DRAFT_CHANGED`); draft a new one. Draft states are `ready`, `superseded`, `approved` and `send_failed`.
 
 Retries: calling again with the same `idempotencyKey` returns the same send (`isReplay: true`) and sends nothing twice. A different key for a draft already sent is refused with `SMART_REPLY_ALREADY_SENT`. At most one smart reply is ever sent per lead message.
 
@@ -250,7 +250,7 @@ When it may send, it still sends only:
 - If the caller owns the thread's seat.
 - Between 08:00 and 20:00 in the seat's own time zone. That is the seat's sending zone, or else the workspace's Slack digest zone.
 - At most 10 automatic sends per seat in any 24 hours.
-- If every detail the draft cites (a time, date, weekday, meeting length, link, email address, amount of money or capitalised name) already appears in the thread, the offer, the lead's or sender's name, or the seat's saved context.
+- If every detail the draft cites (a time, date or year, weekday, meeting length, link, email address, amount of money or capitalised name) already appears in the thread, the offer, the lead's or sender's name, or the seat's saved context. This check is strict: a capitalised word that opens a sentence counts as a name unless it is a common opener. Sends a member approves with `smart_reply_approve_send` skip this check.
 
 Response when it sent (HTTP 202):
 
