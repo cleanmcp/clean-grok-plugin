@@ -150,7 +150,7 @@ Shared LinkedIn threads where the lead wrote last, newest first, each with your 
 
 ### smart_reply_draft
 
-Input: `conversationId` (uuid, from `smart_reply_list`). Writes a draft in the sending seat's voice and never sends. Each call is a model call; a caller may draft at most 20 a minute.
+Input: `conversationId` (uuid, from `smart_reply_list`). Writes a draft in the sender's voice and never sends. Each call is a model call; a caller may draft at most 20 a minute.
 
 Response (HTTP 201):
 
