@@ -238,12 +238,60 @@ Role: any workspace member, viewer and up. Read-only credentials work. Responses
 | `account_alerts` | `GET .../channel-posts/account-alerts` | none | `{ "schemaVersion": 1, "alerts": [...] }` |
 | `signal_questions` | `GET .../channel-posts/signal-questions` | `signalPlanId` (uuid, optional; omit for all open research) | `{ "schemaVersion": 1, "research": [...] }` |
 
-What each one means:
+What each one returns. These are the exact types the #1072 readers return (`record/slack/channel-posts.ts`); the object types themselves live on main in `source/slack/blocks.ts`, the same ones the Slack post is drawn from.
 
-- `digest`: the weekday Today post. `null` on a day with nothing to say.
-- `campaign_report`: one campaign's report once all its leads are done. Fields: `campaignName`, `finish` (`completed` or `through_everyone`), `openUrl`, `ran`, `stats`. `null` while leads still run, and also `null` for a campaign id Clean cannot find.
-- `account_alerts`: LinkedIn accounts that need reconnecting or were disconnected in the last 7 days.
-- `signal_questions`: open questions from current research, each with its `signalPlanId`. Answer them in the chat its `openUrl` names.
+`digest` (the weekday Today post; `null` on a day with nothing to say), type `SlackDigest`:
+
+```json
+{
+  "dayLabel": "string",
+  "openUrl": "string",
+  "stats": [ { "label": "string", "value": "string" } ],
+  "rows": [ { "text": "string", "url": "string" } ]
+}
+```
+
+`stats` are the week's numbers; `rows` are the things that need someone, each with a link.
+
+`report` (one campaign's report once all its leads are done), type `SlackCampaignReport`:
+
+```json
+{
+  "campaignName": "string",
+  "finish": "completed | through_everyone",
+  "openUrl": "string",
+  "ran": "string or null",
+  "stats": [ { "label": "string", "value": "string" } ]
+}
+```
+
+`null` while leads still run, when the campaign is not active or completed, and for a campaign id Clean cannot find.
+
+`alerts` (every LinkedIn account that needs reconnecting, and every one disconnected in the last 7 days; at most 50, most recently changed first), each of type `SlackAccountAlertMessage`:
+
+```json
+{
+  "accountName": "string or null",
+  "alert": "linkedin_disconnected | linkedin_reconnect_required",
+  "memberName": "string",
+  "settingsUrl": "string"
+}
+```
+
+`accountName` is the LinkedIn profile's name, `null` when Clean did not capture it; `memberName` is the Clean member who connected the account. The type also allows `alert: "linkedin_held"` with a `heldUntil` time, but this read never returns it: a hold is not stored, so it shows only in the Slack post.
+
+`research` (open questions from current research, newest first; empty when none stand), each of type `SlackSignalQuestions` plus `signalPlanId`:
+
+```json
+{
+  "signalPlanId": "uuid",
+  "icpName": "string",
+  "openUrl": "string",
+  "questions": [ { "question": "string", "assumption": "string" } ]
+}
+```
+
+`assumption` is what Clean assumes until the question is answered. Answer in the chat `openUrl` names.
 
 A bad `timeZone`, a missing `campaignId` for `campaign_report`, or a non uuid id is a 400 `REQUEST_INVALID`.
 
