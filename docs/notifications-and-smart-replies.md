@@ -401,18 +401,23 @@ Depends on [Mono-icarus #1077](https://github.com/cleanmcp/Mono-icarus/pull/1077
 
 Every route an API key, OAuth token or MCP tool reaches is limited, per route, to:
 
-- **120 calls a minute per credential.** An API key counts as one credential, so a shared agent key shares its 120 across every member it acts for. An OAuth token counts per connector, member and workspace.
-- **600 calls a minute per workspace**, across all its keys and tokens.
+- **120 calls a minute per credential, member and workspace.** Each member counts on their own, so a shared agent key gets 120 for each member it acts for, and an OAuth connector gets 120 for each member who connected it.
+- **600 calls a minute per workspace**, shared across all its keys, tokens and members.
 
-A route is its method plus its path pattern, so `GET /v1/w/:workspaceId/notifications/events` is one route whatever the ids, and each MCP tool call counts at each route it reaches. The window is a rolling 60 seconds, counted in each API process. A refused call is not counted. Browser sessions are not counted. The key's own limit of 240 calls a minute across all routes still applies.
+A route is its method plus its path pattern, so `GET /v1/w/:workspaceId/notifications/events` is one route whatever the ids, and each MCP tool call counts at each route it reaches. The window is a rolling 60 seconds, counted in each API process. A call refused by a limit is not counted against that limit. Browser sessions are not counted. The key's own limit of 240 calls a minute across all routes still applies.
 
-The call over the limit gets HTTP 429 with reason `TOKEN_ROUTE_RATE_LIMITED` (`class: "rate_limited"`, `retryable: true`), at that route only: other routes and other credentials keep working. Over MCP the tool returns an error result with the same reason. The response has no `Retry-After` header, so back off yourself:
+The call over the limit gets HTTP 429 with reason `TOKEN_ROUTE_RATE_LIMITED` (`class: "rate_limited"`, `retryable: true`), at that route only: other routes and other credentials keep working. The response carries a `Retry-After` header in whole seconds, at least 1: the time until the oldest counted call leaves the 60 second window. Over MCP the tool returns an error result whose text ends with the same wait:
+
+```text
+Clean refused: this action was called too often in the last minute, by this credential or across the workspace. Try again in 12 seconds.
+```
+
+Backoff example that honours `Retry-After`:
 
 ```python
 import random, time
 
 def call_with_backoff(call, max_tries=6):
-    delay = 1.0
     for attempt in range(max_tries):
         response = call()
         if response.status_code != 429:
@@ -420,12 +425,12 @@ def call_with_backoff(call, max_tries=6):
         reason = response.json().get("error", {}).get("reason")
         if reason != "TOKEN_ROUTE_RATE_LIMITED":
             return response              # some other limit; handle it on its own terms
-        time.sleep(delay + random.uniform(0, delay / 2))
-        delay = min(delay * 2, 60.0)     # the window is 60 seconds, so never wait longer
+        wait = int(response.headers.get("Retry-After", "1"))
+        time.sleep(wait + random.uniform(0, 1))   # a little jitter so callers do not retry together
     return response
 ```
 
-For polling, one `get_notifications` call every few minutes per workspace stays far under the limit. When `hasMore` is true, page on at once, and back off only after a 429.
+For polling, one `get_notifications` call every few minutes per workspace stays far under the limit. When `hasMore` is true, page on at once, and wait only after a 429.
 
 ## channel_posts_read
 
