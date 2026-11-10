@@ -8,11 +8,14 @@ Status: **not live yet.** Every tool on this page depends on an open pull reques
 | `smart_reply_list` | `GET /v1/w/:workspaceId/smart-replies` | [Mono-icarus #1069](https://github.com/cleanmcp/Mono-icarus/pull/1069) |
 | `smart_reply_draft` | `POST /v1/w/:workspaceId/smart-replies/:conversationId/draft` | [Mono-icarus #1069](https://github.com/cleanmcp/Mono-icarus/pull/1069) |
 | `smart_reply_approve_send` | `POST /v1/w/:workspaceId/smart-replies/:conversationId/send` | [Mono-icarus #1069](https://github.com/cleanmcp/Mono-icarus/pull/1069) |
+| `smart_reply_auto_send` | `POST /v1/w/:workspaceId/smart-replies/:conversationId/auto-send` | [Mono-icarus #1075](https://github.com/cleanmcp/Mono-icarus/pull/1075) (built on #1069) |
+| `proposals_read` | `GET /v1/w/:workspaceId/agent/conversations/:conversationId/proposals` | [Mono-icarus #1074](https://github.com/cleanmcp/Mono-icarus/pull/1074) |
+| `proposal_decide` | `POST /v1/w/:workspaceId/agent/runs/:runId/steps/:stepIndex/proposal/{confirm,decline}` | [Mono-icarus #1074](https://github.com/cleanmcp/Mono-icarus/pull/1074) |
 | `channel_posts_read` | `GET /v1/w/:workspaceId/channel-posts/{digest,campaign-report,account-alerts,signal-questions}` | [Mono-icarus #1072](https://github.com/cleanmcp/Mono-icarus/pull/1072) |
 | Webhook subscriptions | `POST`, `GET /v1/w/:workspaceId/webhooks`, `DELETE .../webhooks/:subscriptionId`, `GET .../deliveries`, `POST .../replay` | [Mono-icarus #1073](https://github.com/cleanmcp/Mono-icarus/pull/1073) (built on #1071) |
 | `ack_notifications` | `POST /v1/w/:workspaceId/webhooks/:subscriptionId/ack` | [Mono-icarus #1073](https://github.com/cleanmcp/Mono-icarus/pull/1073) |
 
-Every MCP tool here calls the API route beside it with the caller's own credential, so the API and MCP behave the same: same checks, same refusals, same audit. Nothing new is needed to connect: the existing Clean sign in (OAuth) or workspace API key reaches these routes.
+Every MCP tool here calls the API route beside it with the caller's own credential, so the API and MCP behave the same: same checks, same refusals, same audit. Nothing new is needed to connect: the existing Clean sign in (OAuth) or workspace API key reaches these routes. A bot acting for many members can instead use one shared agent key (#1076, below).
 
 ## How refusals look
 
@@ -22,7 +25,7 @@ Over the API a refusal is an HTTP error with this body:
 { "error": { "class": "conflict", "domain": "outreach", "reason": "SMART_REPLY_STALE" } }
 ```
 
-`class` sets the HTTP status: `invalid` 400, `forbidden` 403, `not_found` 404, `conflict` 409, `rate_limited` 429. A request that fails its input schema is 400 with reason `REQUEST_INVALID`.
+`class` sets the HTTP status: `invalid` 400, `forbidden` 403, `not_found` 404, `conflict` 409, `rate_limited` 429, `internal` 500. A request that fails its input schema is 400 with reason `REQUEST_INVALID`.
 
 Over MCP the same refusal comes back as a tool error whose text starts with `Clean refused:` followed by the reason (for example `Clean refused: SMART_REPLY_STALE`). Switch on the reason, not the wording.
 
@@ -82,7 +85,7 @@ Dedupe on `eventId`. The server never writes a second event for the same underly
 
 `agent_reply`, `link_prompt`, `notice`, `channel_reply`, `connect_channel`, `digest`, `proposal_card`, `proposal_result`, `account_alert`, `campaign_report`, `signal_questions`, `smart_reply_draft`, `reminder`.
 
-The first eleven are the Slack delivery kinds and are written for every Slack delivery. `smart_reply_draft` and `reminder` are reserved: the PR adds them to the list, but no code in that PR writes them yet.
+The first eleven are the Slack delivery kinds and are written for every Slack delivery. #1071 itself writes neither `smart_reply_draft` nor `reminder`. #1069 writes `smart_reply_draft` (member audience, for the drafter) with `outcome` `drafted`, `approved` or `send_failed`, and #1075 adds `autosent` and `autosend_refused`. No PR writes `reminder` yet.
 
 Channel-wide kinds (`channel_reply`, `connect_channel`, `digest`, `account_alert`, `campaign_report`, `signal_questions`) have `audience: "workspace"` and every member sees them. The other kinds have `audience: "member"` and only the linked Clean member they were for sees them.
 
@@ -122,7 +125,7 @@ every few minutes:
 
 Depends on [Mono-icarus #1069](https://github.com/cleanmcp/Mono-icarus/pull/1069).
 
-Smart replies answer a lead's newest message in a shared LinkedIn thread. Clean writes the draft; a person reads the exact text and approves it; only then does it send, through the same send the Team reply box and the chat Send card use. Nothing sends on its own.
+Smart replies answer a lead's newest message in a shared LinkedIn thread. Clean writes the draft; a person reads the exact text and approves it; only then does it send, through the same send the Team reply box and the chat Send card use. The one exception is `smart_reply_auto_send` (#1075, below), which is off for everyone until staff turn it on for a single LinkedIn seat.
 
 Role: workspace member (viewer is refused). Drafting and sending need a full-scope credential; a read-only credential reaches only `smart_reply_list`.
 
@@ -199,6 +202,8 @@ Response (HTTP 202):
 
 How to compute `textSha256`: hash the `body` string exactly as `smart_reply_draft` returned it, encoded as UTF-8, with no trimming or edits. For example in Python `hashlib.sha256(body.encode("utf-8")).hexdigest()`. It must equal `bodySha256`; if the person edited the text, the hashes differ and the send is refused. To send different words, draft again.
 
+A send that LinkedIn settles as failed (not one that may have reached LinkedIn) moves the draft to state `send_failed`, with an audit row and a `smart_reply_draft` event (`outcome: "send_failed"`). That frees the lead message: a member may draft again and approve the new draft. Draft states are `ready`, `superseded`, `approved` and `send_failed`.
+
 Retries: calling again with the same `idempotencyKey` returns the same send (`isReplay: true`) and sends nothing twice. A different key for a draft already sent is refused with `SMART_REPLY_ALREADY_SENT`. At most one smart reply is ever sent per lead message.
 
 Who may send: only the member who drafted it, with their own credential. Clean staff signed in as a client cannot send (`STAFF_CANNOT_CONFIRM_SENDS`).
@@ -223,8 +228,204 @@ Approval rule for agents: always show the person the exact `body` and wait for a
 | `SMART_REPLY_DRAFT_CHANGED` | 409 | The draft was replaced by a newer draft | Use the newest draft |
 | `SMART_REPLY_STALE` | 409 | The draft is over 60 minutes old | Draft again and re-confirm |
 | `SMART_REPLY_ALREADY_SENT` | 409 | Already sent with another idempotency key, or this lead message already got a smart reply | Do not resend |
+| `SMART_REPLY_BODY_NOT_SANITIZED` | 409 | The stored text would still be changed by the outbound dash rule (the rule grew after drafting), or no longer matches its hash. Clean refuses rather than rewrite text on the way out | Draft again |
+| `SMART_REPLY_REFUSED` | 500 | The draft failed Clean's sender identity check, the workspace's member names could not be read, or the thread has no seat or its seat belongs to someone other than the thread's owner (retryable) | Draft again later, or reply in Clean |
+| `SMART_REPLY_GENERATION_FAILED` | 500 | The model call that writes the draft failed (retryable) | Draft again |
 | `STAFF_CANNOT_CONFIRM_SENDS` | 403 | Staff signed in as the client | The client member sends |
 | `REQUEST_INVALID` | 400 | Input failed the schema | Fix the input |
+
+### smart_reply_auto_send
+
+Depends on [Mono-icarus #1075](https://github.com/cleanmcp/Mono-icarus/pull/1075), which is built on #1069.
+
+Drafts the reply to the lead's newest message in one LinkedIn thread and sends it with **no one approving the text**. Input: `conversationId` (uuid). API: `POST /v1/w/:workspaceId/smart-replies/:conversationId/auto-send` with body `{}`. Role: member; works with an API key or OAuth token.
+
+**Off by default.** It sends only when both of these are on:
+
+1. Clean's global kill switch, the API setting `SMART_REPLY_AUTOSEND_ENABLED=true`. While it is not `true`, every call is refused with `SMART_REPLY_AUTOSEND_OFF`.
+2. A staff grant for that one LinkedIn seat: capability `smart_reply_autosend` with the seat's `connectionId`, given by Clean staff only after Pavan approves that seat. It is never a customer setting. Revoking the grant turns it off.
+
+When it may send, it still sends only:
+
+- If the caller owns the thread's seat.
+- Between 08:00 and 20:00 in the seat's own time zone. That is the seat's sending zone, or else the workspace's Slack digest zone.
+- At most 10 automatic sends per seat in any 24 hours.
+- If every detail the draft cites (a time, date, weekday, meeting length, link, email address, amount of money or capitalised name) already appears in the thread, the offer, the lead's or sender's name, or the seat's saved context.
+
+Response when it sent (HTTP 202):
+
+```json
+{ "decision": "sent", "draftId": "uuid", "requestId": "uuid", "state": "sent | failed | queued" }
+```
+
+Response when it refused (HTTP 200; nothing was sent):
+
+```json
+{ "decision": "refused", "draftId": "uuid or null", "reason": "SMART_REPLY_AUTOSEND_QUIET_HOURS" }
+```
+
+`draftId` is `null` when it refused before writing a draft. A refused draft is not sent, and this response holds no approval token. To send by hand, run `smart_reply_draft` and `smart_reply_approve_send` as usual. Each decision, sent or refused, writes one audit row and one `smart_reply_draft` event for the caller (`outcome` `autosent` or `autosend_refused`). Neither holds the text.
+
+Refusal reasons (always HTTP 200, `decision: "refused"`):
+
+| Reason | When |
+| --- | --- |
+| `SMART_REPLY_AUTOSEND_NOT_SEAT_OWNER` | The caller does not own this thread's LinkedIn seat |
+| `SMART_REPLY_AUTOSEND_OFF` | The global kill switch is off |
+| `SMART_REPLY_AUTOSEND_SEAT_NOT_ALLOWED` | Staff have not allowed this seat |
+| `SMART_REPLY_AUTOSEND_NO_TIME_ZONE` | Neither the seat nor the workspace has a known time zone |
+| `SMART_REPLY_AUTOSEND_QUIET_HOURS` | Outside 08:00 to 20:00 local time |
+| `SMART_REPLY_AUTOSEND_RATE_CAPPED` | The seat already sent 10 automatic replies in the last 24 hours |
+| `SMART_REPLY_PREVIOUS_SEND_FAILED` | An earlier send to this lead message failed. Automatic sends never retry it; a member may approve one by hand |
+| `SMART_REPLY_UNGROUNDED_DETAIL` | The draft cites a detail that none of its sources hold |
+| `LINKEDIN_REPLY_NOT_ALLOWED` | The caller cannot reply from this seat |
+| `SMART_REPLY_LEAD_OPTED_OUT` | The lead said no or asked to be left alone |
+| `SMART_REPLY_NOTHING_TO_ANSWER` | The newest message is not from the lead |
+| `SMART_REPLY_THREAD_CHANGED` | A newer message or a reply arrived, including one that arrived while the draft was being written |
+| `SMART_REPLY_RATE_LIMITED` | More than 20 drafts a minute by this caller |
+| `SMART_REPLY_DRAFT_CHANGED` | The draft was replaced before it could be approved |
+| `SMART_REPLY_STALE` | The draft expired before it could be approved |
+| `SMART_REPLY_BODY_NOT_SANITIZED` | The stored text failed the outbound dash rule or its hash |
+| `SMART_REPLY_ALREADY_SENT` | This lead message already got a smart reply |
+
+These are still HTTP errors, not refusals: `STAFF_CANNOT_CONFIRM_SENDS` (403, Clean staff signed in as the client), a thread that does not exist or that you cannot see (404), `SMART_REPLY_THREAD_TOO_LONG`, drafting failures (`SMART_REPLY_DRAFT_EMPTY`, `SMART_REPLY_REFUSED`, `SMART_REPLY_GENERATION_FAILED`) and `REQUEST_INVALID`.
+
+## Chat cards: proposals_read and proposal_decide
+
+Depends on [Mono-icarus #1074](https://github.com/cleanmcp/Mono-icarus/pull/1074).
+
+A chat card is an action the Clean agent proposed in a conversation and that waits for a person: add leads to a campaign, launch, pause, add to a CRM. These two tools list and decide cards through the same routes the app and the Slack buttons use, so the same rules and audit apply. Only the person who asked for the card can decide it.
+
+### proposals_read
+
+Input: `conversationId` (uuid, from research or reply). API: `GET /v1/w/:workspaceId/agent/conversations/:conversationId/proposals`. Role: viewer; works with an API key or OAuth token.
+
+Returns the conversation's cards from the last day, newest first:
+
+```json
+{ "schemaVersion": 1, "proposals": [ { "...": "one card view, below" } ] }
+```
+
+Each card view: `schemaVersion` (1), `action`, `runId`, `stepIndex`, `state` (`pending`, `confirmed`, `declined`, `expired` or `unavailable`), `canDecide` (true only for the requester while the card is pending), `card` (what the card shows, including its warnings), `proposedAt`, `expiresAt`, `requesterName` (or null) and `result` (`{ facts, isSettled }`, or null before a decision runs). A deleted, closed or other workspace's conversation returns `CONVERSATION_NOT_FOUND`.
+
+One card on its own: `GET /v1/w/:workspaceId/agent/runs/:runId/steps/:stepIndex/proposal` returns `{ "proposal": <card view> }` (viewer).
+
+### proposal_decide
+
+Input:
+
+| Field | Type | Notes |
+| --- | --- | --- |
+| `runId` | uuid | From `proposals_read` |
+| `stepIndex` | integer | 1 to 100000, from `proposals_read` |
+| `decision` | `"confirm"` or `"decline"` | |
+| `acknowledged` | string array | Up to 4 codes of 1 to 40 characters, default `[]`. The code of each warning that needs acknowledging, sent only after the person agreed to it. Used on confirm only |
+
+API (role member; works with an API key or OAuth token):
+
+- Confirm: `POST /v1/w/:workspaceId/agent/runs/:runId/steps/:stepIndex/proposal/confirm` with body `{ "acknowledged": [...] }`.
+- Decline: `POST /v1/w/:workspaceId/agent/runs/:runId/steps/:stepIndex/proposal/decline` with no body.
+
+Both return `{ "proposal": <card view>, "replayed": false }`. A second confirm or decline of the same card, or two at once, returns the first result with `replayed: true` and does nothing again. Confirm runs exactly the arguments stored on the card; the call sends only acknowledgements, so it cannot change what the card does. If the action itself refuses, nothing is written and the card stays pending until it expires.
+
+**Sign-in rule for sends (`SIGN_IN_AGAIN`).** Confirming a card that sends outreach needs the member's own recent sign-in to Clean: their latest live session, with no staff member acting in it, must be no older than the Clean setting `chat.recent_sign_in_hours` (12 hours as first set). With an API key or OAuth token, Clean reads that latest sign-in, exactly as it does for a Slack button. Otherwise it returns 403 `SIGN_IN_AGAIN`: ask the person to sign in to Clean, then confirm again. Staff acting as the member can never confirm a send (`STAFF_CANNOT_CONFIRM_SENDS`).
+
+Errors:
+
+| Code | HTTP | Meaning |
+| --- | --- | --- |
+| `INTEGRATION_PROPOSAL_NOT_FOUND` | 404 | No such card |
+| `INTEGRATION_NOT_REQUESTER` | 403 | Only the person who asked for the card can decide it |
+| `SIGN_IN_AGAIN` | 403 | A send card needs a recent sign-in, above |
+| `STAFF_CANNOT_CONFIRM_SENDS` | 403 | Staff acting as the member cannot confirm a send |
+| `INTEGRATION_ROLE_INSUFFICIENT` | 403 | The member's role is below what the action needs |
+| `INTEGRATION_PROPOSAL_CONFIRMED` | 409 | Already confirmed |
+| `INTEGRATION_PROPOSAL_DECLINED` | 409 | Already declined |
+| `INTEGRATION_PROPOSAL_EXPIRED` | 409 | Expired |
+| `INTEGRATION_ACTION_UNAVAILABLE` | 409 | The action can no longer run |
+| `INTEGRATION_ACKNOWLEDGEMENT_REQUIRED` | 409 | A warning that needs acknowledging is missing from `acknowledged` |
+| `INTEGRATION_DECISION_RATE_LIMITED` | 429 | More than 20 decisions a minute by this member (retryable) |
+| `INTEGRATION_PROPOSAL_CARD_INVALID` | 500 | The stored card could not be read |
+
+Decide a card only when the person asked you to.
+
+## Shared agent key and X-Clean-Acting-Member
+
+Depends on [Mono-icarus #1076](https://github.com/cleanmcp/Mono-icarus/pull/1076).
+
+One bot (the Grok bot) can act for many members of a workspace with one API key, the way the Slack bot does. Without it, each member needs their own key.
+
+### Making the key
+
+An owner or admin makes it from a signed-in browser session, never with a key or token:
+
+- `POST /v1/w/:workspaceId/api-keys` with `{ "name": "...", "scope": "full" | "read", "actingMemberUserIds": ["userId", ...], "expiresInDays": n }` (`expiresInDays` optional). `actingMemberUserIds` holds 1 to 50 user ids, each a member of this workspace; duplicates are dropped. Returns 201 `{ apiKey, key, workspaceId }`. The full `key` is shown only this once.
+- `PATCH /v1/w/:workspaceId/api-keys/:keyId` with `{ "actingMemberUserIds": [...] }` replaces the list (role admin). Returns `{ actingMemberUserIds, keyId }`.
+
+Each create and each list change writes an audit row (`api_key.created`, `api_key.members_changed`) holding the list. If that audit row cannot be written, the change is undone.
+
+### Calling with it
+
+Send the key as usual and name the member in the `X-Clean-Acting-Member` header, by user id:
+
+```http
+GET /v1/w/:workspaceId/notifications/events
+Authorization: Bearer <shared agent key>
+X-Clean-Acting-Member: <member user id>
+```
+
+The request then runs as that member. Their rights are the lowest of three:
+
+1. the member's own workspace role, checked on every request as usual;
+2. the key's scope (`read` keys can only make GET calls);
+3. the current role of the member who made the key.
+
+Every audit row the request writes names the acting member as actor and carries the key's id (`agentKeyId`). A send still needs that member's own recent sign-in to Clean (see `SIGN_IN_AGAIN` above).
+
+### Refusals
+
+| Code | HTTP | When |
+| --- | --- | --- |
+| `ACTING_MEMBER_REQUIRED` | 403 | A shared agent key was sent without `X-Clean-Acting-Member` (or with it empty) |
+| `ACTING_MEMBER_NOT_ALLOWED` | 403 | The named member is not on the key's list |
+| `ACTING_MEMBER_FORBIDDEN` | 403 | The header was sent with a member's own key or an OAuth token. They always act as their owner, so the header is refused, not ignored |
+| `WORKSPACE_NOT_FOUND` | 404 | The acting member, or the key's maker, is no longer in the workspace. A maker who left stops the key at once |
+| `ROLE_INSUFFICIENT` | 403 | The lowest of the three rights is below what the route needs. Also returned when someone other than an owner or admin tries to make or change a shared agent key |
+| `TOKEN_SCOPE_FORBIDDEN` | 403 | A `read` key on a call that is not a GET |
+| `ACTING_MEMBER_NOT_IN_WORKSPACE` | 400 | Making or changing the key: a listed user is not a member of this workspace |
+| `API_KEY_NOT_FOUND` | 404 | Changing the list of a key that does not exist, is in another workspace, or is not a shared agent key |
+
+## Per-route rate limits
+
+Depends on [Mono-icarus #1077](https://github.com/cleanmcp/Mono-icarus/pull/1077).
+
+Every route an API key, OAuth token or MCP tool reaches is limited, per route, to:
+
+- **120 calls a minute per credential.** An API key counts as one credential, so a shared agent key shares its 120 across every member it acts for. An OAuth token counts per connector, member and workspace.
+- **600 calls a minute per workspace**, across all its keys and tokens.
+
+A route is its method plus its path pattern, so `GET /v1/w/:workspaceId/notifications/events` is one route whatever the ids, and each MCP tool call counts at each route it reaches. The window is a rolling 60 seconds, counted in each API process. A refused call is not counted. Browser sessions are not counted. The key's own limit of 240 calls a minute across all routes still applies.
+
+The call over the limit gets HTTP 429 with reason `TOKEN_ROUTE_RATE_LIMITED` (`class: "rate_limited"`, `retryable: true`), at that route only: other routes and other credentials keep working. Over MCP the tool returns an error result with the same reason. The response has no `Retry-After` header, so back off yourself:
+
+```python
+import random, time
+
+def call_with_backoff(call, max_tries=6):
+    delay = 1.0
+    for attempt in range(max_tries):
+        response = call()
+        if response.status_code != 429:
+            return response
+        reason = response.json().get("error", {}).get("reason")
+        if reason != "TOKEN_ROUTE_RATE_LIMITED":
+            return response              # some other limit; handle it on its own terms
+        time.sleep(delay + random.uniform(0, delay / 2))
+        delay = min(delay * 2, 60.0)     # the window is 60 seconds, so never wait longer
+    return response
+```
+
+For polling, one `get_notifications` call every few minutes per workspace stays far under the limit. When `hasMore` is true, page on at once, and back off only after a 429.
 
 ## channel_posts_read
 
@@ -340,10 +541,10 @@ Create response:
 - A new subscription starts at the newest event when it is created (`deliveredCursor`). It does not push older events; read those with `get_notifications`.
 - It receives every workspace audience event, plus member events addressed to the admin who created it, filtered by `kinds`.
 - The URL must be https with a public host: no user or password in it, no `localhost`, no name without a dot, no `.local`, `.internal`, `.localhost` or `.home.arpa`, no private, loopback or link-local IP. Otherwise 400 `WEBHOOK_URL_UNSAFE`.
-- At most 10 active subscriptions per workspace (409 `WEBHOOK_SUBSCRIPTION_LIMIT`).
+- At most 10 subscriptions per workspace, active or paused (409 `WEBHOOK_SUBSCRIPTION_LIMIT`).
 - An unknown or deleted subscription id is 404 `WEBHOOK_SUBSCRIPTION_NOT_FOUND`.
 
-Each list entry has `subscriptionId`, `url`, `kinds`, `deliveredCursor`, `ackedCursor`, `breakerState` (`closed`, `half_open`, `open`), `consecutiveFailures`, `nextAttemptAt`, `deadLetterCount`, `replayPendingCount`, `createdAt`. It never includes the secret.
+Each list entry has `subscriptionId`, `url`, `kinds`, `deliveredCursor`, `ackedCursor`, `breakerState` (`closed`, `half_open`, `open`), `consecutiveFailures`, `nextAttemptAt`, `deadLetterCount`, `replayPendingCount`, `createdAt`, `state` (`active` or `paused`) and `pausedReason` (null unless paused). It never includes the secret.
 
 ### What Clean sends
 
@@ -450,6 +651,6 @@ seen.add(event["eventId"]); queue(event); return 200
 every so often: ack_notifications(subscription_id, through_cursor=last_cursor_handled)
 ```
 
-### Not documented yet
+### Paused subscriptions
 
-#1073 will also pause a subscription whose creator is no longer an admin. That change is not in the PR yet, so it is not described here.
+Clean delivers only while the admin who created the subscription is still an owner or admin of the workspace. When that is no longer true, the next delivery pauses the subscription instead: `state` becomes `paused`, `pausedReason` is `creator_not_admin`, nothing more is sent, and an audit row (`webhook.subscription_paused`) is written. A paused subscription still shows in the list, still counts toward the 10, and can still be acked or deleted. #1073 has no route that resumes it: an admin deletes it and creates a new one.
