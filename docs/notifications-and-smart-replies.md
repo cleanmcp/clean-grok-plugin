@@ -68,9 +68,11 @@ The API route sends `Cache-Control: private, no-store`.
 
 - Keep `nextCursor` and pass it back as `since_cursor` on the next call. Nothing is missed and nothing is repeated.
 - Each event's number is set when its write commits, with no gaps, per workspace, in commit order. So once you have read past number N, no event with a lower number can appear later.
-- When nothing new has committed, `nextCursor` comes back unchanged and `events` is empty.
-- When `hasMore` is true, call again right away with the new `nextCursor`.
-- Each event also carries its own `cursor`. If you stop partway through a page, save the `cursor` of the last event you finished.
+- Without `kinds`: a call returns up to `limit` events. `nextCursor` is the last event returned. `hasMore` is true when more events are already there.
+- With `kinds`: a call scans up to 1,000 events and returns the matching ones, up to `limit`. `nextCursor` moves past every event it scanned, matching or not, so events that did not match are never scanned again. If more than `limit` matched, `nextCursor` is the last event returned instead.
+- So **`hasMore` can be true while `events` is empty** (a filtered call scanned 1,000 events and none matched). Keep calling while `hasMore` is true; do not stop on an empty page.
+- When nothing new has committed, `nextCursor` comes back unchanged, `events` is empty and `hasMore` is false.
+- Always save `nextCursor` after a page, not the last event's `cursor`: with `kinds`, `nextCursor` can be ahead of the last returned event. Each event's own `cursor` is only for stopping partway through a page; resuming from it is safe but rescans.
 
 ### Dedupe
 
@@ -104,15 +106,16 @@ To show who replied and what they said, follow up with `inbox_read` (or `convers
 ```
 cursor = load() or "0"
 seen = load_seen_event_ids()
-loop every few minutes:
-  page = get_notifications(since_cursor=cursor, limit=100)
-  for event in page.events:
-    if event.eventId not in seen:
-      handle(event)        # for a reply alert, read details with inbox_read
-      seen.add(event.eventId)
-    cursor = event.cursor
+every few minutes:
+  repeat:
+    page = get_notifications(since_cursor=cursor, kinds=[...], limit=100)   # kinds optional
+    for event in page.events:
+      if event.eventId not in seen:
+        handle(event)        # for a reply alert, read details with inbox_read
+        seen.add(event.eventId)
+    cursor = page.nextCursor
     save(cursor, seen)
-  if page.hasMore: continue right away
+  until not page.hasMore     # an empty page with hasMore true still means call again
 ```
 
 ## Smart replies
