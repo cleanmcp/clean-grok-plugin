@@ -9,7 +9,7 @@
   },
   "publisher": "Clean",
   "homepage": "https://tryclean.ai",
-  "repository": "https://github.com/cleanmcp/clean",
+  "repository": "https://github.com/cleanmcp/clean-grok-plugin",
   "license": "MIT",
   "logo": "assets/logo.png",
   "category": "integrations",
