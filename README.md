@@ -98,6 +98,8 @@ Revoke a connected app or key at any time in **Settings → API & MCP**.
 | `leads_read`, `leads_write` | Read saved leads and organize them into lists |
 | `sequences_read`, `sequences_write` | Read sequences and draft them; drafting never sends a message |
 
+Pending tools, not live until their Clean server pull requests merge and deploy: `get_notifications` (read every event the Slack bot sends, by cursor), `smart_reply_list`, `smart_reply_draft`, `smart_reply_approve_send` (draft a LinkedIn reply in the sender's voice and send it only after a person approves the exact text), `channel_posts_read` (read the digest, campaign report, account alerts and research questions the Slack channel shows), `smart_reply_auto_send` (send with no approval, off until Clean staff allow a seat), `proposals_read` and `proposal_decide` (list, confirm or decline chat cards), and signed webhooks with `ack_notifications`. Also pending: a shared agent key that acts for named members through `X-Clean-Acting-Member`, and per-route rate limits. See [docs/notifications-and-smart-replies.md](docs/notifications-and-smart-replies.md).
+
 The hosted server is the source of truth for tool names and schemas. To check the connection, ask your agent to "list my Clean ICPs".
 
 ## Support
